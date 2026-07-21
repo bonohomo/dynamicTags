@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    :root {
+      --text: #1f2a44;
+      --muted: #58677f;
+      --border: #d8e1f0;
+      --soft: #f6f9ff;
+      --danger: #dc2626;
+      --danger-soft: #fff1f2;
+      --primary: #0f376f;
+      --success: #15803d;
+      --warning-bg: #fff8e6;
+      --warning-border: #ffc857;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 22px 24px 24px;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: #fff;
+      font-size: 14px;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      color: #08265a;
+      font-size: 24px;
+      line-height: 1.2;
+    }
+
+    .hint {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      background: #fff;
+      box-shadow: 0 12px 26px rgba(15, 55, 111, 0.08);
+      margin-bottom: 16px;
+    }
+
+    .card h3 {
+      margin: 0 0 14px;
+      color: var(--text);
+      font-size: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    input[type="text"],
+    input[type="url"] {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: var(--text);
+      background: #fff;
+      font: inherit;
+      outline: none;
+    }
+
+    input[type="text"]:focus,
+    input[type="url"]:focus {
+      border-color: #9bb5dd;
+      box-shadow: 0 0 0 3px rgba(15, 55, 111, 0.08);
+    }
+
+    .search-row { margin-bottom: 12px; }
+
+    .checkbox-list {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      padding: 8px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-bottom: 0;
+      font-weight: 400;
+      font-size: 14px;
+    }
+
+    .checkbox-item:hover { background: var(--soft); }
+    .checkbox-item.hidden { display: none; }
+    .checkbox-item input[type="checkbox"] {
+      flex: 0 0 auto;
+      width: auto;
+      margin: 2px 0 0;
+      padding: 0;
+    }
+    .checkbox-label { font-size: 14px; word-break: break-word; }
+
+    .selected-tags-wrap { margin-bottom: 12px; }
+
+    .tags-box {
+      min-height: 48px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: var(--soft);
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 12px;
+    }
+
+    .tag-pill {
+      display: inline-block;
+      margin: 0 6px 6px 0;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #eaf1ff;
+      color: #12386f;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .tag-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 20px;
+    }
+
+    .empty-text {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .message {
+      margin-top: 12px;
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-size: 13px;
+      line-height: 1.4;
+      display: none;
+    }
+
+    .message.show { display: block; }
+    .message.info { background: var(--soft); border: 1px solid var(--border); color: var(--muted); }
+    .message.warn { background: var(--warning-bg); border: 1px solid var(--warning-border); color: #755118; }
+    .message.error { background: var(--danger-soft); border: 1px solid #fecaca; color: #991b1b; }
+    .message.success { background: #ecfdf5; border: 1px solid #bbf7d0; color: var(--success); }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 14px;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      background: #eef4ff;
+      color: var(--primary);
+    }
+
+    button.danger {
+      background: #fff;
+      color: var(--danger);
+      border-color: #fecaca;
+    }
+
+    button.danger:not(:disabled):hover { background: var(--danger-soft); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <h2>Удалить теги и курсы</h2>
+  <p class="hint">После удаления таблица Keys будет пересчитана и отсортирована автоматически.</p>
+
+  <section class="card">
+    <h3>Удалить курс из тегов</h3>
+    <label for="courseUrl">Ссылка на курс</label>
+    <input id="courseUrl" type="url" placeholder="Например: https://online.top-academy.ru/education/summer-it-camp">
+    <div id="courseTags" class="tags-box">Введите ссылку на курс, чтобы увидеть назначенные теги.</div>
+    <div id="courseMsg" class="message"></div>
+    <div class="actions">
+      <button id="deleteCourseBtn" class="danger" disabled onclick="deleteCourse()">Удалить курс</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Удалить теги</h3>
+    <div class="selected-tags-wrap">
+      <label class="label">Выбранные теги для удаления</label>
+      <div id="selectedTags" class="tag-chips"><span class="empty-text">Пока ничего не выбрано</span></div>
+    </div>
+    <div class="search-row">
+      <label for="tagSearch">Поиск по существующим тегам</label>
+      <input id="tagSearch" type="text" placeholder="Начните вводить тег...">
+    </div>
+    <div id="tagsList" class="checkbox-list"></div>
+    <div id="tagsMsg" class="message info show">Загрузка списка тегов…</div>
+    <div class="actions">
+      <button id="deleteTagsBtn" class="danger" disabled onclick="deleteTags()">Удалить теги</button>
+    </div>
+  </section>
+
+<script>
+  let currentCourseKey = '';
+  let lookupTimer = null;
+
+  const el = id => document.getElementById(id);
+
+  function setMessage(id, type, text) {
+    const node = el(id);
+    node.className = 'message ' + type + (text ? ' show' : '');
+    node.textContent = text || '';
+  }
+
+  function renderCourseTags(tags) {
+    if (!tags || !tags.length) {
+      el('courseTags').textContent = 'По этой ссылке не найдено ни одного тега.';
+      return;
+    }
+    el('courseTags').innerHTML = tags.map(tag => '<span class="tag-pill">' + escapeHtml(tag) + '</span>').join('');
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
+  }
+
+  function refreshTagsList() {
+    google.script.run
+      .withSuccessHandler(tags => {
+        const list = el('tagsList');
+        list.innerHTML = '';
+        (tags || []).forEach(tag => {
+          const row = document.createElement('label');
+          row.className = 'checkbox-item';
+          row.dataset.tag = tag.toLowerCase();
+          row.innerHTML = '<input type="checkbox" class="tag-checkbox" value="' + escapeHtml(tag) + '">' +
+            '<span class="checkbox-label">' + escapeHtml(tag) + '</span>';
+          list.appendChild(row);
+        });
+        setMessage('tagsMsg', 'info', tags && tags.length ? 'Выберите один или несколько тегов для удаления.' : 'В Keys пока нет тегов для удаления.');
+        updateDeleteTagsButton();
+      })
+      .withFailureHandler(err => setMessage('tagsMsg', 'error', 'Ошибка загрузки тегов: ' + err.message))
+      .getExistingKeysTags();
+  }
+
+  function lookupCourse() {
+    const url = el('courseUrl').value.trim();
+    el('deleteCourseBtn').disabled = true;
+    currentCourseKey = '';
+
+    if (!url) {
+      renderCourseTags(null);
+      setMessage('courseMsg', '', '');
+      return;
+    }
+
+    setMessage('courseMsg', 'info', 'Ищем курс в Keys…');
+    google.script.run
+      .withSuccessHandler(result => {
+        currentCourseKey = result && result.courseKey ? result.courseKey : '';
+        renderCourseTags(result && result.tags ? result.tags : []);
+        if (result && result.found) {
+          el('deleteCourseBtn').disabled = false;
+          setMessage('courseMsg', 'success', 'Курс найден. Можно удалить его из всех тегов.');
+        } else {
+          setMessage('courseMsg', 'warn', result && result.error ? result.error : 'Курс не найден в Keys!C2:C.');
+        }
+      })
+      .withFailureHandler(err => setMessage('courseMsg', 'error', 'Ошибка поиска: ' + err.message))
+      .getCourseDeletionPreview(url);
+  }
+
+  function deleteCourse() {
+    if (!currentCourseKey || !confirm('Удалить этот курс из всех тегов?')) return;
+    el('deleteCourseBtn').disabled = true;
+    setMessage('courseMsg', 'info', 'Удаляем курс и пересчитываем таблицы…');
+    google.script.run
+      .withSuccessHandler(result => {
+        setMessage('courseMsg', 'success', 'Готово. Обновлено строк: ' + result.updatedRows + '.');
+        el('courseUrl').value = '';
+        currentCourseKey = '';
+        renderCourseTags(null);
+      })
+      .withFailureHandler(err => setMessage('courseMsg', 'error', 'Ошибка удаления: ' + err.message))
+      .deleteCourseFromKeys(currentCourseKey);
+  }
+
+  function getSelectedTags() {
+    return Array.from(document.querySelectorAll('.tag-checkbox:checked')).map(checkbox => checkbox.value);
+  }
+
+  function renderSelectedTags() {
+    const selected = getSelectedTags();
+    const container = el('selectedTags');
+    if (!selected.length) {
+      container.innerHTML = '<span class="empty-text">Пока ничего не выбрано</span>';
+      return;
+    }
+    container.innerHTML = selected.map(tag => '<span class="tag-pill">' + escapeHtml(tag) + '</span>').join('');
+  }
+
+  function updateDeleteTagsButton() {
+    const hasSelectedTags = getSelectedTags().length > 0;
+    el('deleteTagsBtn').disabled = !hasSelectedTags;
+    renderSelectedTags();
+  }
+
+  function filterTagsList() {
+    const query = el('tagSearch').value.trim().toLowerCase();
+    document.querySelectorAll('#tagsList .checkbox-item').forEach(row => {
+      const tag = row.dataset.tag || '';
+      row.classList.toggle('hidden', query && !tag.includes(query));
+    });
+  }
+
+  function deleteTags() {
+    const tags = getSelectedTags();
+    if (!tags.length || !confirm('Удалить выбранные теги: ' + tags.join(', ') + '?')) return;
+    el('deleteTagsBtn').disabled = true;
+    setMessage('tagsMsg', 'info', 'Удаляем теги и пересчитываем таблицы…');
+    google.script.run
+      .withSuccessHandler(result => {
+        setMessage('tagsMsg', 'success', 'Готово. Удалено тегов: ' + result.deletedTags + '.');
+        refreshTagsList();
+      })
+      .withFailureHandler(err => setMessage('tagsMsg', 'error', 'Ошибка удаления тегов: ' + err.message))
+      .deleteTagsFromKeys(tags);
+  }
+
+  el('courseUrl').addEventListener('input', () => {
+    clearTimeout(lookupTimer);
+    lookupTimer = setTimeout(lookupCourse, 350);
+  });
+  el('tagsList').addEventListener('change', event => {
+    if (event.target.classList.contains('tag-checkbox')) updateDeleteTagsButton();
+  });
+  el('tagSearch').addEventListener('input', filterTagsList);
+  refreshTagsList();
+</script>
+</body>
+</html>

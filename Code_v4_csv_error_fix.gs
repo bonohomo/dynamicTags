@@ -33,6 +33,8 @@ function onOpen() {
     .addItem("Рубрики для заполнения контентом", "downloadLabelsToFill")
     .addItem("Контент для рубрик", "downloadLabelsContent")
     .addItem("Контент для пар рубрик", "downloadPairsContent")
+    .addSeparator()
+    .addItem("Удалить теги или курс", "openDeleteDialog")
     .addToUi();
 }
 
@@ -132,6 +134,146 @@ function sortKeysSheet(sheet) {
   ]);
 
 }
+
+function openDeleteDialog() {
+  const html = HtmlService.createHtmlOutputFromFile('delete')
+    .setWidth(720)
+    .setHeight(760);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Удалить теги и курсы');
+}
+
+function getKeysSheetOrThrow() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(KEYS_SHEET_NAME);
+  if (!sheet) throw new Error('Не найден лист "' + KEYS_SHEET_NAME + '".');
+  return sheet;
+}
+
+function getExistingKeysTags() {
+  const keysData = readKeysSheet(getKeysSheetOrThrow());
+  return keysData.rows
+    .map(row => row.tag)
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, 'ru'));
+}
+
+function normalizeCourseKey(value) {
+  if (!value) return '';
+  const text = value.toString().trim();
+  const extracted = extractCourseKey(text);
+  if (extracted) return extracted;
+  return text.replace(/^\/education\//i, '').replace(/^education\//i, '').replace(/^\/+|\/+$/g, '').trim();
+}
+
+function getCourseKeyVariants(courseKey) {
+  const key = normalizeCourseKey(courseKey);
+  if (!key) return [];
+  return [
+    key,
+    '/education/' + key,
+    'education/' + key
+  ];
+}
+
+function getCourseDeletionPreview(courseUrl) {
+  const courseKey = normalizeCourseKey(courseUrl);
+  if (!courseKey) {
+    return {
+      found: false,
+      courseKey: '',
+      tags: [],
+      error: 'В ссылке должен быть фрагмент /education/ и ключ курса после него.'
+    };
+  }
+
+  const keysData = readKeysSheet(getKeysSheetOrThrow());
+  const variants = new Set(getCourseKeyVariants(courseKey));
+  const tags = [];
+
+  keysData.rows.forEach(row => {
+    if (!row.tag) return;
+    const hasCourse = row.urls.some(url => variants.has(normalizeCourseKey(url)));
+    if (hasCourse) tags.push(row.tag);
+  });
+
+  return {
+    found: tags.length > 0,
+    courseKey: courseKey,
+    tags: tags
+  };
+}
+
+function recalculateAndSortKeysSheet(sheet) {
+  const keysData = readKeysSheet(sheet);
+
+  keysData.rows.forEach(row => {
+    if (!row.rowIndex || !row.tag) return;
+    sheet.getRange(row.rowIndex, COL_COUNT).setValue(row.urls.length);
+    sheet.getRange(row.rowIndex, COL_URLS).setValue(row.urls.join(', '));
+  });
+
+  sortKeysSheet(sheet);
+
+  try { updateAll(); } catch (err) { console.error('updateAll error after Keys cleanup: ' + err); }
+}
+
+function deleteCourseFromKeys(courseKey) {
+  const normalizedKey = normalizeCourseKey(courseKey);
+  if (!normalizedKey) throw new Error('Не передан ключ курса.');
+
+  const sheet = getKeysSheetOrThrow();
+  const keysData = readKeysSheet(sheet);
+  const variants = new Set(getCourseKeyVariants(normalizedKey));
+  let updatedRows = 0;
+
+  keysData.rows.forEach(row => {
+    if (!row.rowIndex || !row.tag) return;
+    const nextUrls = row.urls.filter(url => !variants.has(normalizeCourseKey(url)));
+    if (nextUrls.length !== row.urls.length) {
+      row.urls = nextUrls;
+      sheet.getRange(row.rowIndex, COL_URLS).setValue(row.urls.join(', '));
+      updatedRows++;
+    }
+  });
+
+  recalculateAndSortKeysSheet(sheet);
+
+  return {
+    courseKey: normalizedKey,
+    updatedRows: updatedRows
+  };
+}
+
+function deleteTagsFromKeys(tags) {
+  if (!Array.isArray(tags) || tags.length === 0) throw new Error('Не выбраны теги для удаления.');
+
+  const sheet = getKeysSheetOrThrow();
+  const tagsToDelete = new Set(tags.map(tag => tag.toString().trim().toLowerCase()).filter(Boolean));
+  if (tagsToDelete.size === 0) throw new Error('Не выбраны теги для удаления.');
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < START_ROW_KEYS) {
+    return { deletedTags: 0 };
+  }
+
+  const values = sheet.getRange(START_ROW_KEYS, COL_TAG, lastRow - START_ROW_KEYS + 1, 1).getValues();
+  const rowsToDelete = [];
+
+  values.forEach((row, index) => {
+    const tag = (row[0] || '').toString().trim().toLowerCase();
+    if (tagsToDelete.has(tag)) rowsToDelete.push(START_ROW_KEYS + index);
+  });
+
+  for (let i = rowsToDelete.length - 1; i >= 0; i--) {
+    sheet.deleteRow(rowsToDelete[i]);
+  }
+
+  recalculateAndSortKeysSheet(sheet);
+
+  return {
+    deletedTags: rowsToDelete.length
+  };
+}
+
 function processTemplate() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
